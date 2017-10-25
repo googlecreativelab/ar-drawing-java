@@ -1,0 +1,154 @@
+<!--
+   Copyright 2016 Google Inc.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/content"
+    tools:context="com.googlecreativelab.drawar.DrawAR">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <android.opengl.GLSurfaceView
+            android:id="@+id/surfaceview"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_gravity="top"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/button_bar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="@android:color/black"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:layout_width="@android:dimen/app_icon_size"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:elevation="0dp"
+                android:onClick="onClickUndo"
+                android:src="@drawable/ic_undo_black_24dp"
+                android:tint="@android:color/darker_gray" />
+
+
+            <ImageButton
+                android:id="@+id/imageButton9"
+                android:layout_width="@android:dimen/app_icon_size"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:elevation="0dp"
+                android:onClick="onClickRecenter"
+                android:src="@drawable/ic_my_location_black_24dp"
+                android:tint="@android:color/darker_gray" />
+
+            <ImageButton
+                android:id="@+id/imageButton13"
+                android:layout_width="@android:dimen/app_icon_size"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:elevation="0dp"
+                android:onClick="onClickClear"
+                android:src="@drawable/ic_delete_black_24dp"
+                android:tint="@android:color/darker_gray" />
+
+            <ImageButton
+                android:id="@+id/settingsButton"
+                android:layout_width="@android:dimen/app_icon_size"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:elevation="0dp"
+                android:onClick="onClickSettings"
+                android:src="@drawable/ic_settings_black_24dp"
+                android:tint="@android:color/darker_gray" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/strokeUI"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/background_dark"
+        android:orientation="vertical"
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp">
+
+        <Switch
+            android:id="@+id/debugView"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:checked="false"
+            android:onClick="onClickLineDebug"
+            android:text="Drawing plane highlight"
+            android:textColor="@android:color/darker_gray"
+            tools:checked="false" />
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Line Width"
+            android:textColor="@android:color/darker_gray" />
+
+        <SeekBar
+            android:id="@+id/lineWidth"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:max="100"
+            android:progress="50" />
+
+        <TextView
+            android:id="@+id/textView4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Distance Scale" />
+
+        <SeekBar
+            android:id="@+id/distanceScale"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:max="100"
+            android:progress="50" />
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Smoothing" />
+
+        <SeekBar
+            android:id="@+id/smoothingSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:max="100"
+            android:progress="50" />
+    </LinearLayout>
+
+
+</RelativeLayout>
