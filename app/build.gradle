@@ -1,36 +1,29 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '26.0.2'
-
+    compileSdkVersion 27
     defaultConfig {
         applicationId "com.googlecreativelab.drawar"
+
+        // 24 is the minimum since ARCore only works with 24 and higher.
         minSdkVersion 24
-        targetSdkVersion 26
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
     }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-
-        lintOptions {
-            abortOnError false
-        }
-    }
-}
-
-repositories {
-    flatDir {
-        dirs '../libs'
     }
 }
 
 dependencies {
-    compile(name: 'arcore_client', ext: 'aar')
-    compile 'com.android.support:appcompat-v7:26.1.0'
-    compile 'com.android.support:design:26.1.0'
+    // ARCore library
+    implementation 'com.google.ar:core:1.0.0'
+    implementation 'javax.vecmath:vecmath:1.5.2'
+    implementation 'com.android.support:appcompat-v7:27.1.0'
+    implementation 'com.android.support:design:27.1.0'
 }

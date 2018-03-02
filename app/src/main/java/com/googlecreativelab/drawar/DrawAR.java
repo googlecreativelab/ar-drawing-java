@@ -25,26 +25,39 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
+import android.support.design.widget.BaseTransientBottomBar;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
+import com.google.ar.core.ArCoreApk;
+import com.google.ar.core.Camera;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
+import com.google.ar.core.exceptions.UnavailableApkTooOldException;
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 import com.googlecreativelab.drawar.rendering.BackgroundRenderer;
 import com.googlecreativelab.drawar.rendering.LineShaderRenderer;
 import com.googlecreativelab.drawar.rendering.LineUtils;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -57,8 +70,8 @@ import javax.vecmath.Vector3f;
  * the ARCore API.
  */
 
-public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureDetector.OnGestureListener,
-        GestureDetector.OnDoubleTapListener {
+public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer, GestureDetector.OnGestureListener,
+        GestureDetector.OnDoubleTapListener{
     private static final String TAG = DrawAR.class.getSimpleName();
 
     private GLSurfaceView mSurfaceView;
@@ -80,7 +93,7 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
 
     private BiquadFilter biquadFilter;
     private Vector3f mLastPoint;
-    private Vector2f lastTouch;
+    private AtomicReference<Vector2f> lastTouch = new AtomicReference<>();
 
     private GestureDetectorCompat mDetector;
 
@@ -108,6 +121,12 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
 
     private ArrayList<ArrayList<Vector3f>> mStrokes;
 
+    private DisplayRotationHelper mDisplayRotationHelper;
+    private Snackbar mMessageSnackbar;
+
+    private boolean bInstallRequested;
+
+    private TrackingState mState;
     /**
      * Setup the app when main activity is created
      */
@@ -175,23 +194,13 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         // Hide the settings ui
         mSettingsUI.setVisibility(View.GONE);
 
-
+        mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
         // Reset the zero matrix
         Matrix.setIdentityM(mZeroMatrix, 0);
 
         mLastPoint = new Vector3f(0, 0, 0);
 
-        // Create ARCore session
-        mSession = new Session(/*context=*/this);
-
-        // Create default config, check is supported, create session from that config.
-        mDefaultConfig = Config.createDefaultConfig();
-        mDefaultConfig.setLightingMode(Config.LightingMode.DISABLED);
-        if (!mSession.isSupported(mDefaultConfig)) {
-            Toast.makeText(this, "This device does not support AR", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+        bInstallRequested = false;
 
         // Set up renderer.
         mSurfaceView.setPreserveEGLContextOnPause(true);
@@ -204,7 +213,8 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         mDetector = new GestureDetectorCompat(this, this);
         mDetector.setOnDoubleTapListener(this);
         mStrokes = new ArrayList<>();
-        lastTouch = new Vector2f();
+
+
     }
 
 
@@ -267,24 +277,58 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
     protected void onResume() {
         super.onResume();
 
-        // ARCore requires camera permissions to operate. If we did not yet obtain runtime
-        // permission on Android M and above, now is a good time to ask the user for it.
-        if (PermissionHelper.hasCameraPermission(this)) {
-            // Note that order matters - see the note in onPause(), the reverse applies here.
-            mSession.resume(mDefaultConfig);
-            mSurfaceView.onResume();
-        } else {
-            PermissionHelper.requestCameraPermission(this);
+        if (mSession == null) {
+            Exception exception = null;
+            String message = null;
+            try {
+                switch (ArCoreApk.getInstance().requestInstall(this, !bInstallRequested)) {
+                    case INSTALL_REQUESTED:
+                        bInstallRequested = true;
+                        return;
+                    case INSTALLED:
+                        break;
+                }
+
+                // ARCore requires camera permissions to operate. If we did not yet obtain runtime
+                // permission on Android M and above, now is a good time to ask the user for it.
+                if (!PermissionHelper.hasCameraPermission(this)) {
+                    PermissionHelper.requestCameraPermission(this);
+                    return;
+                }
+
+                mSession = new Session(/* context= */ this);
+            } catch (UnavailableArcoreNotInstalledException
+                    | UnavailableUserDeclinedInstallationException e) {
+                message = "Please install ARCore";
+                exception = e;
+            } catch (UnavailableApkTooOldException e) {
+                message = "Please update ARCore";
+                exception = e;
+            } catch (UnavailableSdkTooOldException e) {
+                message = "Please update this app";
+                exception = e;
+            } catch (Exception e) {
+                message = "This device does not support AR";
+                exception = e;
+            }
+
+            if (message != null) {
+                Log.e(TAG, "Exception creating session", exception);
+                return;
+            }
+
+            // Create default config and check if supported.
+            Config config = new Config(mSession);
+            if (!mSession.isSupported(config)) {
+                Log.e(TAG, "Exception creating session Device Does Not Support ARCore", exception);
+            }
+            mSession.configure(config);
         }
-
+        // Note that order matters - see the note in onPause(), the reverse applies here.
+        mSession.resume();
+        mSurfaceView.onResume();
+        mDisplayRotationHelper.onResume();
         mPaused = false;
-
-
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-
-        mScreenHeight = displayMetrics.heightPixels;
-        mScreenWidth = displayMetrics.widthPixels;
     }
 
     /**
@@ -296,8 +340,20 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         // Note that the order matters - GLSurfaceView is paused first so that it does not try
         // to query the session. If Session is paused before GLSurfaceView, GLSurfaceView may
         // still call mSession.update() and get a SessionPausedException.
-        mSurfaceView.onPause();
-        mSession.pause();
+
+        if (mSession != null) {
+            mDisplayRotationHelper.onPause();
+            mSurfaceView.onPause();
+            mSession.pause();
+        }
+
+        mPaused = false;
+
+
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        mScreenHeight = displayMetrics.heightPixels;
+        mScreenWidth = displayMetrics.widthPixels;
     }
 
 
@@ -346,7 +402,9 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         GLES20.glViewport(0, 0, width, height);
         // Notify ARCore session that the view size changed so that the perspective matrix and
         // the video background can be properly adjusted.
-        mSession.setDisplayGeometry(width, height);
+        mDisplayRotationHelper.onSurfaceChanged(width, height);
+        mScreenWidth = width;
+        mScreenHeight = height;
     }
 
 
@@ -360,25 +418,36 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
      * updates the Line Renderer with the current strokes, color, distance scale, line width etc
      */
     private void update() {
+
+        if (mSession == null) {
+            return;
+        }
+
+        mDisplayRotationHelper.updateSessionIfNeeded(mSession);
+
         try {
 
-            // Update ARCore frame
+            mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
+
             mFrame = mSession.update();
+            Camera camera = mFrame.getCamera();
+
+            mState = camera.getTrackingState();
 
             // Update tracking states
-            if (mFrame.getTrackingState() == Frame.TrackingState.TRACKING && !bIsTracking.get()) {
+            if (mState == TrackingState.TRACKING && !bIsTracking.get()) {
                 bIsTracking.set(true);
-            } else if (mFrame.getTrackingState() == Frame.TrackingState.NOT_TRACKING && bIsTracking.get()) {
+            } else if (mState== TrackingState.STOPPED && bIsTracking.get()) {
                 bIsTracking.set(false);
                 bTouchDown.set(false);
             }
 
             // Get projection matrix.
-            mSession.getProjectionMatrix(projmtx, 0, AppSettings.getNearClip(), AppSettings.getFarClip());
-            mFrame.getViewMatrix(viewmtx, 0);
+            camera.getProjectionMatrix(projmtx, 0, AppSettings.getNearClip(), AppSettings.getFarClip());
+            camera.getViewMatrix(viewmtx, 0);
 
             float[] position = new float[3];
-            mFrame.getPose().getTranslation(position, 0);
+            camera.getPose().getTranslation(position, 0);
 
             // Check if camera has moved much, if thats the case, stop touchDown events
             // (stop drawing lines abruptly through the air)
@@ -398,10 +467,10 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
 
             if (bNewStroke.get()) {
                 bNewStroke.set(false);
-                addStroke(lastTouch);
+                addStroke(lastTouch.get());
                 mLineShaderRenderer.bNeedsUpdate.set(true);
             } else if (bTouchDown.get()) {
-                addPoint(lastTouch);
+                addPoint(lastTouch.get());
                 mLineShaderRenderer.bNeedsUpdate.set(true);
             }
 
@@ -439,29 +508,28 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         }
     }
 
+
+
+
     /**
-     * renderScene() clears the Color Buffer and Depth Buffer, draws the current texture from the camera
+     * GL Thread Loop
+     * clears the Color Buffer and Depth Buffer, draws the current texture from the camera
      * and draws the Line Renderer if ARCore is tracking the world around it
      */
-    private void renderScene() {
+    @Override
+    public void onDrawFrame(GL10 gl) {
+        if (mPaused) return;
+
+        update();
+
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         // Draw background.
         mBackgroundRenderer.draw(mFrame);
 
         // Draw Lines
-        if (mFrame.getTrackingState() == Frame.TrackingState.TRACKING) {
+        if (mFrame.getCamera().getTrackingState() == TrackingState.TRACKING) {
             mLineShaderRenderer.draw(viewmtx, projmtx, mScreenWidth, mScreenHeight, AppSettings.getNearClip(), AppSettings.getFarClip());
         }
-    }
-
-    /**
-     * GL Thread Loop called update() then renderScene()
-     */
-    @Override
-    public void onDrawFrame(GL10 gl) {
-        if (mPaused) return;
-        update();
-        renderScene();
     }
 
 
@@ -472,8 +540,8 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
         float[] t = new float[3];
         float[] m = new float[16];
 
-        mFrame.getPose().getTranslation(t, 0);
-        float[] z = mFrame.getPose().getZAxis();
+        mFrame.getCamera().getPose().getTranslation(t, 0);
+        float[] z = mFrame.getCamera().getPose().getZAxis();
         Vector3f zAxis = new Vector3f(z[0], z[1], z[2]);
         zAxis.y = 0;
         zAxis.normalize();
@@ -576,18 +644,18 @@ public class DrawAR extends Activity implements GLSurfaceView.Renderer, GestureD
     public boolean onTouchEvent(MotionEvent tap) {
         this.mDetector.onTouchEvent(tap);
 
-        if (tap.getAction() == MotionEvent.ACTION_DOWN) {
-            lastTouch.set(tap.getX(), tap.getY());
+        if (tap.getAction() == MotionEvent.ACTION_DOWN ) {
+            lastTouch.set(new Vector2f(tap.getX(), tap.getY()));
             bTouchDown.set(true);
             bNewStroke.set(true);
             return true;
-        } else if (tap.getAction() == MotionEvent.ACTION_MOVE) {
-            lastTouch.set(tap.getX(), tap.getY());
+        } else if (tap.getAction() == MotionEvent.ACTION_MOVE || tap.getAction() == MotionEvent.ACTION_POINTER_DOWN) {
+            lastTouch.set(new Vector2f(tap.getX(), tap.getY()));
             bTouchDown.set(true);
             return true;
-        } else if (tap.getAction() == MotionEvent.ACTION_UP) {
+        } else if (tap.getAction() == MotionEvent.ACTION_UP || tap.getAction() == MotionEvent.ACTION_CANCEL) {
             bTouchDown.set(false);
-            lastTouch.set(tap.getX(), tap.getY());
+            lastTouch.set(new Vector2f(tap.getX(), tap.getY()));
             return true;
         }
 
