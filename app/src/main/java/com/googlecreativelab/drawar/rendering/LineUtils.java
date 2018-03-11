@@ -16,14 +16,11 @@
  package com.googlecreativelab.drawar.rendering;
 
 import android.opengl.Matrix;
-
-import com.google.ar.core.math.Ray;
 import com.googlecreativelab.drawar.AppSettings;
 import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;
 
 public class LineUtils {
-
 
     /**
      * @param value
@@ -111,8 +108,7 @@ public class LineUtils {
     public static Ray projectRay(Vector2f touchPoint, float screenWidth, float screenHeight, float[] projectionMatrix, float[] viewMatrix) {
         float[] viewProjMtx = new float[16];
         Matrix.multiplyMM(viewProjMtx, 0, projectionMatrix, 0, viewMatrix, 0);
-        Ray worldRay = screenPointToRay(touchPoint, new Vector2f(screenWidth, screenHeight), viewProjMtx);
-        return worldRay;
+        return screenPointToRay(touchPoint, new Vector2f(screenWidth, screenHeight), viewProjMtx);
     }
 
 
