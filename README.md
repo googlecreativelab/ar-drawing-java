@@ -1,7 +1,7 @@
 # AR Drawing
-AR Drawing is an [AR Experiment](experiments.withgoogle.com/ar) written in Java using [ARCore](https://developers.google.com/ar/) that lets you draw simple white lines in 3d space by pressing your screen and moving the phone around the space. 
+AR Drawing is an [AR Experiment](https://experiments.withgoogle.com/ar) written in Java using [ARCore](https://developers.google.com/ar/) that lets you draw simple white lines in 3d space by pressing your screen and moving the phone around the space. 
 
-The code is based on the [ARCore example](https://github.com/google-ar/arcore-android-sdk/tree/master/samples/java_arcore_hello_ar), the only large change is the LineRenderer. 
+The code is based on the [ARCore example](https://github.com/google-ar/arcore-android-sdk/tree/master/samples/hello_ar_java), the only large change is the LineRenderer. 
 
 The experiment is an continuation of an [openFrameworks experiment](https://experiments.withgoogle.com/ar/arcore-drawing) made previously.
 
