@@ -388,6 +388,8 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
      */
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        if (mSession == null) return;
+
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         // Create the texture and pass it to ARCore session to be filled during update().
@@ -527,7 +529,7 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
         mBackgroundRenderer.draw(mFrame);
 
         // Draw Lines
-        if (mFrame.getCamera().getTrackingState() == TrackingState.TRACKING) {
+        if (mFrame != null && mFrame.getCamera().getTrackingState() == TrackingState.TRACKING) {
             mLineShaderRenderer.draw(viewmtx, projmtx, mScreenWidth, mScreenHeight, AppSettings.getNearClip(), AppSettings.getFarClip());
         }
     }
