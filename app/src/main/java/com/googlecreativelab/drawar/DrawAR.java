@@ -388,12 +388,24 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
      */
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+
+        if (mSession == null) {
+            return;
+        }
+
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         // Create the texture and pass it to ARCore session to be filled during update().
         mBackgroundRenderer.createOnGlThread(/*context=*/this);
-        mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
-        mLineShaderRenderer.createOnGlThread(this);
+
+        try {
+
+            mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
+            mLineShaderRenderer.createOnGlThread(this);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -523,6 +535,11 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
         update();
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+        if (mFrame == null) {
+            return;
+        }
+
         // Draw background.
         mBackgroundRenderer.draw(mFrame);
 
