@@ -347,7 +347,7 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
             mSession.pause();
         }
 
-        mPaused = false;
+        mPaused = true;
 
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
