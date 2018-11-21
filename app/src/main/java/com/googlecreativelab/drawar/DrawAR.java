@@ -289,13 +289,6 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
                         break;
                 }
 
-                // ARCore requires camera permissions to operate. If we did not yet obtain runtime
-                // permission on Android M and above, now is a good time to ask the user for it.
-                if (!PermissionHelper.hasCameraPermission(this)) {
-                    PermissionHelper.requestCameraPermission(this);
-                    return;
-                }
-
                 mSession = new Session(/* context= */ this);
             } catch (UnavailableArcoreNotInstalledException
                     | UnavailableUserDeclinedInstallationException e) {
@@ -354,16 +347,6 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         mScreenHeight = displayMetrics.heightPixels;
         mScreenWidth = displayMetrics.widthPixels;
-    }
-
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
-        if (!PermissionHelper.hasCameraPermission(this)) {
-            Toast.makeText(this,
-                    "Camera permission is needed to run this application", Toast.LENGTH_LONG).show();
-            finish();
-        }
     }
 
     @Override
