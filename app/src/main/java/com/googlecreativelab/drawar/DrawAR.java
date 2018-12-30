@@ -47,6 +47,7 @@ import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
@@ -325,7 +326,11 @@ public class DrawAR extends AppCompatActivity implements GLSurfaceView.Renderer,
             mSession.configure(config);
         }
         // Note that order matters - see the note in onPause(), the reverse applies here.
-        mSession.resume();
+        try {
+            mSession.resume();
+        } catch (CameraNotAvailableException e) {
+            e.printStackTrace();
+        }
         mSurfaceView.onResume();
         mDisplayRotationHelper.onResume();
         mPaused = false;
