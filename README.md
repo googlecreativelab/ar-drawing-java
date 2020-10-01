@@ -16,5 +16,5 @@ You can check if your device is supported on [this list](https://developers.goog
 
 
 ## Contributors
-Aman Kashyap, Jonas Jongejan, Dan Moore 
+Jonas Jongejan, Dan Moore 
  
